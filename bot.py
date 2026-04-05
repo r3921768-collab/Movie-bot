@@ -4,7 +4,7 @@ import os
 
 bot = telebot.TeleBot(os.getenv("BOT_TOKEN"))
 
-channel_username = "@your_channel_name"
+channel_username = "@ITQ5AVAT3FYWNWJL"
 
 while True:
     try:
