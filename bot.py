@@ -22,9 +22,10 @@ def run_bot():
             print(e)
             time.sleep(10)
 
-# bot thread
-Thread(target=run_bot).start()
+if __name__ == "__main__":
+    # bot background me chalega
+    Thread(target=run_bot).start()
 
-# IMPORTANT: Render port fix
-port = int(os.environ.get("PORT", 10000))
-app.run(host="0.0.0.0", port=port)
+    # Render port (IMPORTANT)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
