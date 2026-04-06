@@ -12,7 +12,7 @@ if not token:
 bot = telebot.TeleBot(token)
 
 # 2. Channel Settings
-database_id = -100123515592  # Aapki Database ID
+database_id = -1003867813389  # Aapki Database ID
 channel_username = "@ITQSAVAT3FYVNWUL" # Aapka Main Channel
 
 app = Flask(__name__)
