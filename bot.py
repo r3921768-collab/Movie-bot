@@ -1,15 +1,17 @@
 import telebot
 import time
 import os
+import threading
 from flask import Flask
 from threading import Thread
 
 bot = telebot.TeleBot(os.getenv("BOT_TOKEN"))
 
-# Database channel ID
-SOURCE_CHANNEL = -1003867813389
+# 🔥 Channels
+SOURCE_CHANNEL = -1003867813389  # database channel ID
+TARGET_CHANNEL = "@ITQ5AVAT3FYWNWJL"  # main channel
 
-# Temporary movie storage
+# 📂 Temporary storage
 movies = {}
 
 app = Flask(__name__)
@@ -18,7 +20,7 @@ app = Flask(__name__)
 def home():
     return "Bot is running!"
 
-# 🔥 AUTO INDEX (jab bhi movie upload hogi database me)
+# 🔥 AUTO INDEX (save movies from database)
 @bot.channel_post_handler(content_types=['video', 'document'])
 def save_movie(message):
     try:
@@ -39,7 +41,15 @@ def save_movie(message):
     except Exception as e:
         print("Index Error:", e)
 
-# 🔍 AUTO SEARCH SYSTEM
+# 🗑️ DELETE FUNCTION
+def delete_after(chat_id, msg_id, delay=600):
+    time.sleep(delay)
+    try:
+        bot.delete_message(chat_id, msg_id)
+    except Exception as e:
+        print("Delete Error:", e)
+
+# 🔍 SEARCH + SEND
 @bot.message_handler(func=lambda message: True)
 def search_movie(message):
     user_text = message.text.lower()
@@ -47,19 +57,32 @@ def search_movie(message):
     for name, msg_id in movies.items():
         if user_text in name:
             try:
-                bot.forward_message(
-                    chat_id=message.chat.id,
+                # 🎬 Movie forward
+                sent_movie = bot.forward_message(
+                    chat_id=TARGET_CHANNEL,
                     from_chat_id=SOURCE_CHANNEL,
                     message_id=msg_id
                 )
+
+                # ⚠️ Warning message
+                warning = bot.send_message(
+                    TARGET_CHANNEL,
+                    "⚠️ Forward fast! Only 10 minutes ⏳\nThis movie will be deleted soon."
+                )
+
+                # ⏳ Auto delete after 10 min
+                threading.Thread(target=delete_after, args=(TARGET_CHANNEL, sent_movie.message_id)).start()
+                threading.Thread(target=delete_after, args=(TARGET_CHANNEL, warning.message_id)).start()
+
                 return
+
             except Exception as e:
-                print("Forward Error:", e)
+                print("Error:", e)
                 bot.send_message(message.chat.id, "⚠️ Error sending movie")
 
     bot.send_message(message.chat.id, "❌ Movie not available")
 
-# Bot run
+# 🤖 RUN BOT
 def run_bot():
     bot.infinity_polling()
 
