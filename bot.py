@@ -84,4 +84,4 @@ def search_movie(message):
                 return
 
             except Exception as e:
-                print("❌"
+                print("❌")
