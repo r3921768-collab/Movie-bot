@@ -4,55 +4,51 @@ import os
 from flask import Flask
 from threading import Thread
 
-# 1. Token setup
+# 1. Token setup (Render ke Environment Variables se lega)
 token = os.getenv("BOT_TOKEN")
-if not token:
-    raise Exception("BOT_TOKEN missing!")
-
 bot = telebot.TeleBot(token)
 
-# 2. Channel Settings
+# 2. Sahi ID jo aapne nikaali hai
 database_id = -1003867813389  # Aapki Database ID
-channel_username = "@ITQSAVAT3FYVNWUL" # Aapka Main Channel
+target_channel = "@ITQSAVAT3FYVNWUL" # Aapka Main Channel
 
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Bot is running and live!"
+    return "Bot is running!"
 
-# 3. Yeh function movie forward karega
+# 3. Movie Forward karne ki logic
 def run_bot_logic():
-    # msg_id ko wahan se shuru karein jahan movie hai (e.g. 100)
-    # Agar 1 se shuru karenge toh bot 1, 2, 3 check karega jab tak movie na mile
+    # msg_id = 1 se shuru karein taaki bot pehli post se check kare
     msg_id = 1 
-    print("Forwarding logic started...")
+    print(f"Forwarding started from: {database_id}")
     
     while True:
         try:
-            # Movie forward karne ki koshish
-            bot.forward_message(chat_id=channel_username, from_chat_id=database_id, message_id=msg_id)
+            # Ye command movie forward karegi
+            bot.forward_message(chat_id=target_channel, from_chat_id=database_id, message_id=msg_id)
             print(f"SUCCESS: Message {msg_id} forwarded!")
+            
             msg_id += 1
-            time.sleep(300) # Har 5 minute mein ek post
+            time.sleep(300) # Har 5 minute mein ek movie (Aap ise badal sakte hain)
             
         except Exception as e:
-            # Agar ID nahi mili (khali message), toh agle ID par jao
+            # Agar ID khali hai toh 2 second baad agla check karega
             print(f"SKIP ID {msg_id}: {e}")
             msg_id += 1
-            time.sleep(2) # 2 second wait karke agla check karein
+            time.sleep(2)
 
-# 4. Flask ko background mein chalane ke liye
 def run_server():
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
 
 if __name__ == "__main__":
-    # Pehle Flask (Server) ko alag thread mein start karein
+    # Flask start karein
     t = Thread(target=run_server)
-    t.daemon = True
     t.start()
     
-    # Fir Bot ki logic chalu karein
+    # Forwarding logic start karein
     run_bot_logic()
+    
     
