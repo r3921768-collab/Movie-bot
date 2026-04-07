@@ -5,20 +5,21 @@ import threading
 from flask import Flask
 from threading import Thread
 
+# 🔐 Bot token
 bot = telebot.TeleBot(os.getenv("BOT_TOKEN").strip())
 
-# Channels
-SOURCE_CHANNEL = -1003867813389
-TARGET_CHANNEL = "@ITQ5AVAT3FYWNWJL"
+# 📢 Channels
+SOURCE_CHANNEL = -1003867813389   # database channel
+TARGET_CHANNEL = "@ITQ5AVAT3FYWNWJL"  # main channel
 
-# Movie mapping
+# 🎬 Movie mapping (yaha apni movies add kar)
 movies = {
     "kgf": 213,
     "pushpa": 214,
     "rrr": 215
 }
 
-# User cooldown storage
+# ⏱️ Cooldown system
 user_time = {}
 
 app = Flask(__name__)
@@ -35,11 +36,15 @@ def delete_after(chat_id, msg_id, delay=600):
     except:
         pass
 
-# 🔍 SEARCH + CONTROL
-@bot.message_handler(func=lambda message: True)
+# 🔍 MAIN HANDLER
+@bot.message_handler(func=lambda message: message.text is not None)
 def search_movie(message):
     user_id = message.from_user.id
-    user_text = message.text.lower()
+    user_text = message.text.lower().strip()
+
+    # ❌ ignore unwanted messages (only words allowed)
+    if len(user_text) < 2:
+        return
 
     # ⏱️ Cooldown check (5 min)
     if user_id in user_time:
@@ -48,26 +53,25 @@ def search_movie(message):
             bot.send_message(message.chat.id, "⏳ Wait 5 minutes before next request")
             return
 
-    # 🎬 Movie search
+    # 🎬 Search movie
     if user_text in movies:
         try:
-            # Save user request time
             user_time[user_id] = time.time()
 
-            # Forward movie to main channel
+            # 🎬 Forward movie
             sent = bot.forward_message(
                 chat_id=TARGET_CHANNEL,
                 from_chat_id=SOURCE_CHANNEL,
                 message_id=movies[user_text]
             )
 
-            # Warning message
+            # ⚠️ Warning message
             warn = bot.send_message(
                 TARGET_CHANNEL,
                 "⚠️ Forward fast! Only 10 minutes ⏳\nThis movie will be deleted soon."
             )
 
-            # Auto delete after 10 min
+            # 🗑️ Auto delete after 10 min
             threading.Thread(target=delete_after, args=(TARGET_CHANNEL, sent.message_id)).start()
             threading.Thread(target=delete_after, args=(TARGET_CHANNEL, warn.message_id)).start()
 
@@ -76,9 +80,11 @@ def search_movie(message):
             bot.send_message(message.chat.id, "⚠️ Error sending movie")
 
     else:
-        bot.send_message(message.chat.id, "❌ Movie not available")
+        # ❌ Movie not found (only if proper word)
+        if user_text.isalpha():
+            bot.send_message(message.chat.id, "❌ Movie not available")
 
-# Run bot
+# 🤖 Run bot
 def run_bot():
     bot.infinity_polling()
 
