@@ -36,7 +36,7 @@ def send_movie(message):
             print(e)
             bot.send_message(message.chat.id, "⚠️ Movie send error")
     else:
-        bot.send_message(message.chat.id, "❌ Movie not available")
+        bot.send_message(message.chat.id, "please wait...🙏🎥")
 
 def run_bot():
     bot.infinity_polling()
