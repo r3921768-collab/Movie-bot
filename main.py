@@ -1,12 +1,12 @@
-import os
 import datetime
 import asyncio
 import requests
 from telegram import Bot
 
-BOT_TOKEN = os.getenv("8963670220:AAGvrNBKdJSblslB_wthGwYhXdL8p7mUKH0")
-CHAT_ID = os.getenv("-1003932990702")
-TMDB_API_KEY = os.getenv("7d2aedfc44e8dacf0fb1ddbf73c3986a")
+# સીધા ક્રેડેન્શિયલ્સ
+BOT_TOKEN = "8963670220:AAGvrNBKdJSblslB_wthGwYhXdL8p7mUKH0"
+CHAT_ID = "-1003932990702"
+TMDB_API_KEY = "7d2aedfc44e8dacf0fb1ddbf73c3986a"
 
 async def auto_fetch_and_post():
     bot = Bot(token=BOT_TOKEN)
@@ -27,17 +27,21 @@ async def auto_fetch_and_post():
     response = requests.get(url, params=params).json()
     movies = response.get("results", [])
     
+    if not movies:
+        print("આ તારીખ માટે કોઈ મુવી મળી નથી.")
+        return
+
     for movie in movies:
         title = movie.get("title")
         poster_path = movie.get("poster_path")
         orig_lang = movie.get("original_language", "").upper()
         
         caption = (
-            f"🔥 **COMING SOON** 🔥\n\n"
-            f"🎬 **Movie:** {title}\n"
-            f"🗣️ **Language:** {orig_lang}\n"
-            f"📅 **Release Date:** {target_date}\n\n"
-            f"📝 *Note: આ મૂવી 2 દિવસ પછી આપણી ચેનલમાં ઉપલબ્ધ થશે.*"
+            f"🔥 *COMING SOON* 🔥\n\n"
+            f"🎬 *Movie:* {title}\n"
+            f"🗣️ *Language:* {orig_lang}\n"
+            f"📅 *Release Date:* {target_date}\n\n"
+            f"📝 _Note: આ મૂવી 2 દિવસ પછી આપણી ચેનલમાં ઉપલબ્ધ થશે._"
         )
         
         if poster_path:
