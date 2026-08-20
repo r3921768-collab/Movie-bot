@@ -13,21 +13,23 @@ LANG_MAP = {
     "te": "Telugu",
     "ta": "Tamil",
     "kn": "Kannada",
-    "ml": "Malayalam",
-    "en": "English"
+    "ml": "Malayalam"
 }
 
 async def auto_fetch_and_post():
     bot = Bot(token=BOT_TOKEN)
     
-    # 2 દિવસ પછીની તારીખ
-    target_date = (datetime.date.today() + datetime.timedelta(days=2)).strftime("%Y-%m-%d")
+    today = datetime.date.today()
+    start_date = today.strftime("%Y-%m-%d")
+    end_date = (today + datetime.timedelta(days=14)).strftime("%Y-%m-%d")
     
+    # અહિંયા ભાષા અને પ્રદેશ સેટ કરેલા છે જેથી હોલીવુડ ફિલ્મો નહીં આવે
     url = "https://api.themoviedb.org/3/discover/movie"
     params = {
         "api_key": TMDB_API_KEY,
-        "primary_release_date.gte": target_date,
-        "primary_release_date.lte": target_date,
+        "primary_release_date.gte": start_date,
+        "primary_release_date.lte": end_date,
+        "with_original_language": "hi|gu|te|ta|kn|ml",
         "region": "IN",
         "sort_by": "popularity.desc"
     }
@@ -35,36 +37,38 @@ async def auto_fetch_and_post():
     response = requests.get(url, params=params).json()
     movies = response.get("results", [])
     
-    if not movies:
-        print("No movies found for this date.")
-        return
-
+    # માત્ર ૧ જ મૂવી મોકલશે
+    MAX_POSTS = 1
+    count = 0
+    
     for movie in movies:
+        if count >= MAX_POSTS:
+            break
+            
         title = movie.get("title")
         poster_path = movie.get("poster_path")
+        release_date = movie.get("release_date", "Coming Soon")
         orig_lang = movie.get("original_language", "")
-        language_name = LANG_MAP.get(orig_lang, orig_lang.upper())
-        overview = movie.get("overview", "")
+        language_name = LANG_MAP.get(orig_lang, "Indian Regional")
         rating = movie.get("vote_average", "N/A")
         
-        # જો પોસ્ટર ન હોય તો મેસેજ સ્કીપ કરવો
         if not poster_path:
             continue
             
-        poster_url = f"https://image.tmdb.org/t/p/original{poster_path}"
+        poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}"
         
         caption = (
-            f"🎬 **{title.upper()}**\n\n"
-            f"┌ 🏷️ **Type:** Movie\n"
-            f"├ 🗣️ **Language:** {language_name}\n"
-            f"├ 📅 **Release Date:** {target_date}\n"
-            f"└ ⭐ **Rating:** {rating}/10\n\n"
-            f"📌 **Note:** *This movie will be uploaded to our channel 2 days after release. Stay tuned!*"
+            f"🎬 *{title.upper()}*\n\n"
+            f"┌ 🏷️ *Type:* Indian Movie\n"
+            f"├ 🗣️ *Language:* {language_name}\n"
+            f"├ 📅 *Release Date:* {release_date}\n"
+            f"└ ⭐ *Rating:* {rating}/10\n\n"
+            f"📌 _Note: This movie will be available on our channel soon. Stay tuned!_"
         )
         
         await bot.send_photo(chat_id=CHAT_ID, photo=poster_url, caption=caption, parse_mode="Markdown")
+        count += 1
 
 if __name__ == "__main__":
     asyncio.run(auto_fetch_and_post())
-    
     
