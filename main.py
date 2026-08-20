@@ -23,9 +23,43 @@ async def auto_fetch_and_post():
     start_date = today.strftime("%Y-%m-%d")
     end_date = (today + datetime.timedelta(days=14)).strftime("%Y-%m-%d")
     
-    # અહિંયા ભાષા અને પ્રદેશ સેટ કરેલા છે જેથી હોલીવુડ ફિલ્મો નહીં આવે
-    url = "https://api.themoviedb.org/3/discover/movie"
-    params = {
+    # 1. વેબ સિરીઝ શોધો
+    tv_url = "https://api.themoviedb.org/3/discover/tv"
+    tv_params = {
+        "api_key": TMDB_API_KEY,
+        "first_air_date.gte": start_date,
+        "first_air_date.lte": end_date,
+        "with_original_language": "hi",
+        "sort_by": "popularity.desc"
+    }
+    
+    tv_response = requests.get(tv_url, params=tv_params).json()
+    series_list = tv_response.get("results", [])
+    
+    # જો નવી વેબ સિરીઝ મળે તો પોસ્ટ કરો
+    for series in series_list[:1]:
+        name = series.get("name")
+        poster_path = series.get("poster_path")
+        air_date = series.get("first_air_date", "Coming Soon")
+        rating = series.get("vote_average", "N/A")
+        
+        if poster_path:
+            poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}"
+            caption = (
+                f"🔥 *UPCOMING WEB SERIES* 🔥\n\n"
+                f"🎬 *Series Name:* {name.upper()}\n"
+                f"┌ 🏷️ *Type:* Indian Web Series\n"
+                f"├ 🗣️ *Language:* Hindi\n"
+                f"├ 📅 *Air Date:* {air_date}\n"
+                f"└ ⭐ *Rating:* {rating}/10\n\n"
+                f"📌 _Note: Episodes will be updated on our channel upon release. Stay tuned!_"
+            )
+            await bot.send_photo(chat_id=CHAT_ID, photo=poster_url, caption=caption, parse_mode="Markdown")
+            await asyncio.sleep(2)
+
+    # 2. નવી મુવીઝ શોધો
+    movie_url = "https://api.themoviedb.org/3/discover/movie"
+    movie_params = {
         "api_key": TMDB_API_KEY,
         "primary_release_date.gte": start_date,
         "primary_release_date.lte": end_date,
@@ -34,17 +68,10 @@ async def auto_fetch_and_post():
         "sort_by": "popularity.desc"
     }
     
-    response = requests.get(url, params=params).json()
-    movies = response.get("results", [])
+    movie_response = requests.get(movie_url, params=movie_params).json()
+    movies = movie_response.get("results", [])
     
-    # માત્ર ૧ જ મૂવી મોકલશે
-    MAX_POSTS = 1
-    count = 0
-    
-    for movie in movies:
-        if count >= MAX_POSTS:
-            break
-            
+    for movie in movies[:1]:
         title = movie.get("title")
         poster_path = movie.get("poster_path")
         release_date = movie.get("release_date", "Coming Soon")
@@ -52,22 +79,17 @@ async def auto_fetch_and_post():
         language_name = LANG_MAP.get(orig_lang, "Indian Regional")
         rating = movie.get("vote_average", "N/A")
         
-        if not poster_path:
-            continue
-            
-        poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}"
-        
-        caption = (
-            f"🎬 *{title.upper()}*\n\n"
-            f"┌ 🏷️ *Type:* Indian Movie\n"
-            f"├ 🗣️ *Language:* {language_name}\n"
-            f"├ 📅 *Release Date:* {release_date}\n"
-            f"└ ⭐ *Rating:* {rating}/10\n\n"
-            f"📌 _Note: This movie will be available on our channel soon. Stay tuned!_"
-        )
-        
-        await bot.send_photo(chat_id=CHAT_ID, photo=poster_url, caption=caption, parse_mode="Markdown")
-        count += 1
+        if poster_path:
+            poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}"
+            caption = (
+                f"🎬 *{title.upper()}*\n\n"
+                f"┌ 🏷️ *Type:* Indian Movie\n"
+                f"├ 🗣️ *Language:* {language_name}\n"
+                f"├ 📅 *Release Date:* {release_date}\n"
+                f"└ ⭐ *Rating:* {rating}/10\n\n"
+                f"📌 _Note: This movie will be available on our channel soon. Stay tuned!_"
+            )
+            await bot.send_photo(chat_id=CHAT_ID, photo=poster_url, caption=caption, parse_mode="Markdown")
 
 if __name__ == "__main__":
     asyncio.run(auto_fetch_and_post())
