@@ -14,9 +14,11 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install -r requirements.txt
-      - run: python main.py
+      - name: Run Bot
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+        run: python main.py
+        
           
