@@ -1,3 +1,5 @@
+import os
+import json
 import datetime
 import asyncio
 import requests
@@ -6,6 +8,10 @@ from telegram import Bot
 BOT_TOKEN = "8963670220:AAGvrNBKdJSblslB_wthGwYhXdL8p7mUKH0"
 CHAT_ID = "-1003932990702"
 TMDB_API_KEY = "7d2aedfc44e8dacf0fb1ddbf73c3986a"
+HISTORY_FILE = "posted_messages.json"
+
+# કેટલા દિવસ પછી પોસ્ટ ડિલીટ કરવી (અહીં 2 દિવસ રાખ્યા છે)
+DELETE_AFTER_DAYS = 2
 
 LANG_MAP = {
     "hi": "Hindi",
@@ -16,48 +22,52 @@ LANG_MAP = {
     "ml": "Malayalam"
 }
 
+def load_history():
+    if os.path.exists(HISTORY_FILE):
+        try:
+            with open(HISTORY_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            return []
+    return []
+
+def save_history(history):
+    with open(HISTORY_FILE, "w") as f:
+        json.dump(history, f, indent=4)
+
+async def cleanup_old_posts(bot: Bot, history: list):
+    """જૂના (2 દિવસ જૂના) મેસેજ ડિલીટ કરશે"""
+    now = datetime.datetime.now()
+    remaining_history = []
+    
+    for item in history:
+        post_time = datetime.datetime.fromisoformat(item["timestamp"])
+        msg_id = item["message_id"]
+        
+        # જો મેસેજ 2 દિવસ જૂનો થઈ ગયો હોય તો ડિલીટ કરો
+        if (now - post_time).days >= DELETE_AFTER_DAYS:
+            try:
+                await bot.delete_message(chat_id=CHAT_ID, message_id=msg_id)
+                print(f"Deleted old message: {msg_id}")
+            except Exception as e:
+                print(f"Could not delete message {msg_id}: {e}")
+        else:
+            remaining_history.append(item)
+            
+    return remaining_history
+
 async def auto_fetch_and_post():
     bot = Bot(token=BOT_TOKEN)
+    history = load_history()
+    
+    # 1. પહેલા જૂના મેસેજ ડિલીટ કરો
+    history = await cleanup_old_posts(bot, history)
     
     today = datetime.date.today()
     start_date = today.strftime("%Y-%m-%d")
     end_date = (today + datetime.timedelta(days=14)).strftime("%Y-%m-%d")
     
-    # 1. વેબ સિરીઝ શોધો
-    tv_url = "https://api.themoviedb.org/3/discover/tv"
-    tv_params = {
-        "api_key": TMDB_API_KEY,
-        "first_air_date.gte": start_date,
-        "first_air_date.lte": end_date,
-        "with_original_language": "hi",
-        "sort_by": "popularity.desc"
-    }
-    
-    tv_response = requests.get(tv_url, params=tv_params).json()
-    series_list = tv_response.get("results", [])
-    
-    # જો નવી વેબ સિરીઝ મળે તો પોસ્ટ કરો
-    for series in series_list[:1]:
-        name = series.get("name")
-        poster_path = series.get("poster_path")
-        air_date = series.get("first_air_date", "Coming Soon")
-        rating = series.get("vote_average", "N/A")
-        
-        if poster_path:
-            poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}"
-            caption = (
-                f"🔥 *UPCOMING WEB SERIES* 🔥\n\n"
-                f"🎬 *Series Name:* {name.upper()}\n"
-                f"┌ 🏷️ *Type:* Indian Web Series\n"
-                f"├ 🗣️ *Language:* Hindi\n"
-                f"├ 📅 *Air Date:* {air_date}\n"
-                f"└ ⭐ *Rating:* {rating}/10\n\n"
-                f"📌 _Note: Episodes will be updated on our channel upon release. Stay tuned!_"
-            )
-            await bot.send_photo(chat_id=CHAT_ID, photo=poster_url, caption=caption, parse_mode="Markdown")
-            await asyncio.sleep(2)
-
-    # 2. નવી મુવીઝ શોધો
+    # 2. નવી મુવી શોધો
     movie_url = "https://api.themoviedb.org/3/discover/movie"
     movie_params = {
         "api_key": TMDB_API_KEY,
@@ -89,7 +99,15 @@ async def auto_fetch_and_post():
                 f"└ ⭐ *Rating:* {rating}/10\n\n"
                 f"📌 _Note: This movie will be available on our channel soon. Stay tuned!_"
             )
-            await bot.send_photo(chat_id=CHAT_ID, photo=poster_url, caption=caption, parse_mode="Markdown")
+            sent_msg = await bot.send_photo(chat_id=CHAT_ID, photo=poster_url, caption=caption, parse_mode="Markdown")
+            
+            # મેસેજની ID સેવ કરો જેથી ભવિષ્યમાં ડિલીટ કરી શકાય
+            history.append({
+                "message_id": sent_msg.message_id,
+                "timestamp": datetime.datetime.now().isoformat()
+            })
+            
+    save_history(history)
 
 if __name__ == "__main__":
     asyncio.run(auto_fetch_and_post())
