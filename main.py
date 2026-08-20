@@ -7,7 +7,6 @@ BOT_TOKEN = "8963670220:AAGvrNBKdJSblslB_wthGwYhXdL8p7mUKH0"
 CHAT_ID = "-1003932990702"
 TMDB_API_KEY = "7d2aedfc44e8dacf0fb1ddbf73c3986a"
 
-# ભાષાના શોર્ટ કોડનું પૂરું નામ
 LANG_MAP = {
     "hi": "Hindi",
     "gu": "Gujarati",
@@ -29,7 +28,6 @@ async def auto_fetch_and_post():
         "api_key": TMDB_API_KEY,
         "primary_release_date.gte": target_date,
         "primary_release_date.lte": target_date,
-        "with_original_language": "hi|gu|te|ta|kn|ml",
         "region": "IN",
         "sort_by": "popularity.desc"
     }
@@ -46,21 +44,27 @@ async def auto_fetch_and_post():
         poster_path = movie.get("poster_path")
         orig_lang = movie.get("original_language", "")
         language_name = LANG_MAP.get(orig_lang, orig_lang.upper())
+        overview = movie.get("overview", "")
+        rating = movie.get("vote_average", "N/A")
+        
+        # જો પોસ્ટર ન હોય તો મેસેજ સ્કીપ કરવો
+        if not poster_path:
+            continue
+            
+        poster_url = f"https://image.tmdb.org/t/p/original{poster_path}"
         
         caption = (
-            f"🎬 *COMING SOON TO CINEMAS* 🎬\n\n"
-            f"🍿 *Movie Name:* {title}\n"
-            f"🗣️ *Language:* {language_name}\n"
-            f"📅 *Release Date:* {target_date}\n\n"
-            f"📌 _Note: This movie will be available on our channel 2 days after theatrical release. Stay tuned!_"
+            f"🎬 **{title.upper()}**\n\n"
+            f"┌ 🏷️ **Type:** Movie\n"
+            f"├ 🗣️ **Language:** {language_name}\n"
+            f"├ 📅 **Release Date:** {target_date}\n"
+            f"└ ⭐ **Rating:** {rating}/10\n\n"
+            f"📌 **Note:** *This movie will be uploaded to our channel 2 days after release. Stay tuned!*"
         )
         
-        if poster_path:
-            poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}"
-            await bot.send_photo(chat_id=CHAT_ID, photo=poster_url, caption=caption, parse_mode="Markdown")
-        else:
-            await bot.send_message(chat_id=CHAT_ID, text=caption, parse_mode="Markdown")
+        await bot.send_photo(chat_id=CHAT_ID, photo=poster_url, caption=caption, parse_mode="Markdown")
 
 if __name__ == "__main__":
     asyncio.run(auto_fetch_and_post())
+    
     
