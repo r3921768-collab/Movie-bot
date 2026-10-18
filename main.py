@@ -122,4 +122,17 @@ await bot.send_photo(
 
 if __name__ == "__main__":
     asyncio.run(auto_fetch_and_post())
-    
+    import time
+
+# -- Niche no code file na ekdam last ma muki do --
+if __name__ == "__main__":
+  while True:
+    try:
+      asyncio.run(auto_fetch_and_post())
+    except Exception as e:
+      print("Error:", e)
+
+    # Darak 3 ghante pachi pachi pacho check karse (3 hours = 10800 seconds)
+    print("Waiting for next run...")
+    time.sleep(10800)
+      
