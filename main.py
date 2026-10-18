@@ -1,18 +1,19 @@
-import os
-import json
-import datetime
 import asyncio
+import datetime
+import json
+import os
+import threading
+import time
+from http.server import BaseHTTPRequestHandler, HTTPServer
 import requests
 from telegram import Bot
 
-BOT_TOKEN = "8963670220:AAGvrNBKdJSblslB_wthGwYhXdL8p7mUKH0"
+BOT_TOKEN = "8963670220:AAGvrNBKdJSbls1B_wthGwYhXdL8p7mUKH0"
 CHAT_ID = "-1003932990702"
-SECOND_CHANNEL_ID = "-1003393813099"  # Tamari biji channel ni ID ahiya muko
-
-TMDB_API_KEY = "7d2aedfc44e8dacf0fb1ddbf73c3986a"
+SECOND_CHANNEL_ID = "-1003393813099"  # 👈 Tamari biji channel ni ID ahiya muko
+TMDB_API_KEY = "7d2aedfc44e8dacf0fb1ddbf73..."
 HISTORY_FILE = "posted_messages.json"
 
-# કેટલા દિવસ પછી પોસ્ટ ડિલીટ કરવી (અહીં 2 દિવસ રાખ્યા છે)
 DELETE_AFTER_DAYS = 2
 
 LANG_MAP = {
@@ -21,113 +22,87 @@ LANG_MAP = {
     "te": "Telugu",
     "ta": "Tamil",
     "kn": "Kannada",
-    "ml": "Malayalam"
+    "ml": "Malayalam",
 }
 
+
 def load_history():
-    if os.path.exists(HISTORY_FILE):
-        try:
-            with open(HISTORY_FILE, "r") as f:
-                return json.load(f)
-        except Exception:
-            return []
-    return []
+  if os.path.exists(HISTORY_FILE):
+    try:
+      with open(HISTORY_FILE, "r") as f:
+        return json.load(f)
+    except Exception:
+      return []
+  return []
+
 
 def save_history(history):
-    with open(HISTORY_FILE, "w") as f:
-        json.dump(history, f, indent=4)
+  with open(HISTORY_FILE, "w") as f:
+    json.dump(history, f, indent=4)
 
-async def cleanup_old_posts(bot: Bot, history: list):
-    """જૂના (2 દિવસ જૂના) મેસેજ ડિલીટ કરશે"""
-    now = datetime.datetime.now()
-    remaining_history = []
-    
-    for item in history:
-        post_time = datetime.datetime.fromisoformat(item["timestamp"])
-        msg_id = item["message_id"]
-        
-        # જો મેસેજ 2 દિવસ જૂનો થઈ ગયો હોય તો ડિલીટ કરો
-        if (now - post_time).days >= DELETE_AFTER_DAYS:
-            try:
-                await bot.delete_message(chat_id=CHAT_ID, message_id=msg_id)
-                print(f"Deleted old message: {msg_id}")
-            except Exception as e:
-                print(f"Could not delete message {msg_id}: {e}")
-        else:
-            remaining_history.append(item)
-            
-    return remaining_history
 
 async def auto_fetch_and_post():
-    bot = Bot(token=BOT_TOKEN)
-    history = load_history()
-    
-    # 1. પહેલા જૂના મેસેજ ડિલીટ કરો
-    history = await cleanup_old_posts(bot, history)
-    
-    today = datetime.date.today()
-    start_date = today.strftime("%Y-%m-%d")
-    end_date = (today + datetime.timedelta(days=14)).strftime("%Y-%m-%d")
-    
-    # 2. નવી મુવી શોધો
-    movie_url = "https://api.themoviedb.org/3/discover/movie"
-    movie_params = {
-        "api_key": TMDB_API_KEY,
-        "primary_release_date.gte": start_date,
-        "primary_release_date.lte": end_date,
-        "with_original_language": "hi|gu|te|ta|kn|ml",
-        "region": "IN",
-        "sort_by": "popularity.desc"
-    }
-    
-    movie_response = requests.get(movie_url, params=movie_params).json()
-    movies = movie_response.get("results", [])
-    
-    for movie in movies[:1]:
-        title = movie.get("title")
-        poster_path = movie.get("poster_path")
-        release_date = movie.get("release_date", "Coming Soon")
-        orig_lang = movie.get("original_language", "")
-        language_name = LANG_MAP.get(orig_lang, "Indian Regional")
-        rating = movie.get("vote_average", "N/A")
-        
-        if poster_path:
-            poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}"
-            caption = (
-                f"🎬 *{title.upper()}*\n\n"
-                f"┌ 🏷️ *Type:* Indian Movie\n"
-                f"├ 🗣️ *Language:* {language_name}\n"
-                f"├ 📅 *Release Date:* {release_date}\n"
-                f"└ ⭐ *Rating:* {rating}/10\n\n"
-                f"📌 _Note: This movie will be available on our channel soon. Stay tuned!_"
-            )
-            # 1. Main channel ma photo moklo
-sent_msg = await bot.send_photo(
-    chat_id=CHAT_ID, photo=poster_url, caption=caption
-)
+  bot = Bot(token=BOT_TOKEN)
+  history = load_history()
 
-# 2. Biji channel ma pan aej photo moklo
-await bot.send_photo(
-    chat_id=SECOND_CHANNEL_ID, photo=poster_url, caption=caption
-)
+  today = datetime.date.today()
+  start_date = today.strftime("%Y-%m-%d")
+  end_date = (today + datetime.timedelta(days=14)).strftime("%Y-%m-%d")
 
-            
-            # મેસેજની ID સેવ કરો જેથી ભવિષ્યમાં ડિલીટ કરી શકાય
-            history.append({
-                "message_id": sent_msg.message_id,
-                "timestamp": datetime.datetime.now().isoformat()
-            })
-            
-    save_history(history)
+  movie_url = "https://api.themoviedb.org/3/discover/movie"
+  movie_params = {
+      "api_key": TMDB_API_KEY,
+      "primary_release_date.gte": start_date,
+      "primary_release_date.lte": end_date,
+      "with_original_language": "hi|gu|te|ta|kn|ml",
+      "region": "IN",
+      "sort_by": "popularity.desc",
+  }
 
-if __name__ == "__main__":
-    asyncio.run(auto_fetch_and_post())
-import os
-import threading
-from http.server import BaseHTTPRequestHandler, HTTPServer
+  response = requests.get(movie_url, params=movie_params)
+  movies = response.json().get("results", [])
+
+  for movie in movies:
+    title = movie.get("title")
+    poster_path = movie.get("poster_path")
+    release_date = movie.get("release_date", "Coming Soon")
+    orig_lang = movie.get("original_language", "")
+    lang_name = LANG_MAP.get(orig_lang, "Indian Regional")
+    rating = movie.get("vote_average", "N/A")
+
+    if poster_path:
+      poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}"
+      caption = (
+          f"🎬 **{title.upper()}**\n\n"
+          f"📌 **Type:** Indian Movie\n"
+          f"🌐 **Language:** {lang_name}\n"
+          f"📅 **Release Date:** {release_date}\n"
+          f"⭐ **Rating:** {rating}/10\n\n"
+          f"📝 **Note:** This movie will be available on our channel"
+      )
+
+      try:
+        # 1. Main channel ma photo moklo
+        sent_msg = await bot.send_photo(
+            chat_id=CHAT_ID, photo=poster_url, caption=caption
+        )
+
+        # 2. Biji channel ma pan aej photo moklo
+        await bot.send_photo(
+            chat_id=SECOND_CHANNEL_ID, photo=poster_url, caption=caption
+        )
+
+        history.append({
+            "message_id": sent_msg.message_id,
+            "timestamp": datetime.datetime.now().isoformat(),
+        })
+      except Exception as e:
+        print("Send error:", e)
+
+  save_history(history)
 
 
-# Render mate dummy web server (Port open rakhva mate)
+# Render mate dummy web server jethi app bandh na thay
 class SimpleHandler(BaseHTTPRequestHandler):
 
   def do_GET(self):
@@ -142,9 +117,8 @@ def run_server():
   server.serve_forever()
 
 
-# Main execution
 if __name__ == "__main__":
-  # 1. Server ne background ma chalu karo
+  # 1. Server ne background ma start karo
   threading.Thread(target=run_server, daemon=True).start()
 
   # 2. Dar 3 kalake auto-poster run thase
@@ -152,7 +126,8 @@ if __name__ == "__main__":
     try:
       asyncio.run(auto_fetch_and_post())
     except Exception as e:
-      print("Error:", e)
+      print("Loop error:", e)
 
     print("Waiting for next run...")
     time.sleep(10800)  # 3 hours = 10800 seconds
+        
