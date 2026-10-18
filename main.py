@@ -81,17 +81,41 @@ async def auto_fetch_and_post():
           f"📝 **Note:** This movie will be available on our channel"
       )
 
-      try:
-        # 1. Main channel ma photo moklo
-        sent_msg = await bot.send_photo(
+            try:
+        # 1. Main channel (Database channel) ma permanent photo moklo
+        sent_msg_main = await bot.send_photo(
             chat_id=CHAT_ID, photo=poster_url, caption=caption
         )
 
-        # 2. Biji channel ma pan aej photo moklo
-        await bot.send_photo(
-            chat_id=SECOND_CHANNEL_ID, photo=poster_url, caption=caption
+        # 2. Biji channel ma notice sathe photo moklo
+        caption_with_note = (
+            caption
+            + "\n\n⚠️ **Notice:** This file/message will be automatically deleted"
+            " within 5 minutes. Please save or forward it accordingly."
+        )
+        sent_msg_second = await bot.send_photo(
+            chat_id=SECOND_CHANNEL_ID,
+            photo=poster_url,
+            caption=caption_with_note,
         )
 
+        # 3. 5 minute pachi fkt biji channel valo message delete karva mate task
+        async def delete_second_message():
+          await asyncio.sleep(300)  # 300 seconds = 5 minutes
+          try:
+            await sent_msg_second.delete()
+          except Exception as e:
+            print("Delete error:", e)
+
+        asyncio.create_task(delete_second_message())
+
+        history.append({
+            "message_id": sent_msg_main.message_id,
+            "timestamp": datetime.datetime.now().isoformat(),
+        })
+      except Exception as e:
+        print("Send error:", e)
+          
         history.append({
             "message_id": sent_msg.message_id,
             "timestamp": datetime.datetime.now().isoformat(),
