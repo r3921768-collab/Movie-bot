@@ -7,6 +7,8 @@ from telegram import Bot
 
 BOT_TOKEN = "8963670220:AAGvrNBKdJSblslB_wthGwYhXdL8p7mUKH0"
 CHAT_ID = "-1003932990702"
+SECOND_CHANNEL_ID = "-1003393813099"  # Tamari biji channel ni ID ahiya muko
+
 TMDB_API_KEY = "7d2aedfc44e8dacf0fb1ddbf73c3986a"
 HISTORY_FILE = "posted_messages.json"
 
