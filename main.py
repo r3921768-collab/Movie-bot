@@ -101,7 +101,16 @@ async def auto_fetch_and_post():
                 f"└ ⭐ *Rating:* {rating}/10\n\n"
                 f"📌 _Note: This movie will be available on our channel soon. Stay tuned!_"
             )
-            sent_msg = await bot.send_photo(chat_id=CHAT_ID, photo=poster_url, caption=caption, parse_mode="Markdown")
+            # 1. Main channel ma photo moklo
+sent_msg = await bot.send_photo(
+    chat_id=CHAT_ID, photo=poster_url, caption=caption
+)
+
+# 2. Biji channel ma pan aej photo moklo
+await bot.send_photo(
+    chat_id=SECOND_CHANNEL_ID, photo=poster_url, caption=caption
+)
+
             
             # મેસેજની ID સેવ કરો જેથી ભવિષ્યમાં ડિલીટ કરી શકાય
             history.append({
