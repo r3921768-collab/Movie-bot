@@ -81,7 +81,7 @@ async def auto_fetch_and_post():
           f"📝 **Note:** This movie will be available on our channel"
       )
 
-          try:
+      try:
         # 1. Main channel (Database channel) ma permanent photo moklo
         sent_msg_main = await bot.send_photo(
             chat_id=CHAT_ID, photo=poster_url, caption=caption
