@@ -122,17 +122,37 @@ await bot.send_photo(
 
 if __name__ == "__main__":
     asyncio.run(auto_fetch_and_post())
-    import time
+import os
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
-# -- Niche no code file na ekdam last ma muki do --
+
+# Render mate dummy web server (Port open rakhva mate)
+class SimpleHandler(BaseHTTPRequestHandler):
+
+  def do_GET(self):
+    self.send_response(200)
+    self.end_headers()
+    self.wfile.write(b"Bot is active and running!")
+
+
+def run_server():
+  port = int(os.environ.get("PORT", 10000))
+  server = HTTPServer(("0.0.0.0", port), SimpleHandler)
+  server.serve_forever()
+
+
+# Main execution
 if __name__ == "__main__":
+  # 1. Server ne background ma chalu karo
+  threading.Thread(target=run_server, daemon=True).start()
+
+  # 2. Dar 3 kalake auto-poster run thase
   while True:
     try:
       asyncio.run(auto_fetch_and_post())
     except Exception as e:
       print("Error:", e)
 
-    # Darak 3 ghante pachi pachi pacho check karse (3 hours = 10800 seconds)
     print("Waiting for next run...")
-    time.sleep(10800)
-      
+    time.sleep(10800)  # 3 hours = 10800 seconds
